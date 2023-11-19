@@ -20,6 +20,29 @@
       <link href="css/style.css" rel="stylesheet" />
       <!-- responsive style -->
       <link href="css/responsive.css" rel="stylesheet" />
+
+      <link rel="stylesheet" href="leaflet/leaflet.css" />
+      <script src="leaflet/leaflet.js" ></script>
+
+      <script src="DonneGeo/Region_Maroc_Agri.js" ></script>
+
+      <style>
+         html, body {
+            height: 100%;
+            margin: 0;
+         }
+         .leaflet-container {
+            height: 400px;
+            width: 600px;
+            max-width: 100%;
+            max-height: 100%;
+         }
+      </style>
+      <style>#map { width: 800px; height: 500px; }
+         .info { padding: 6px 8px; font: 14px/16px Arial, Helvetica, sans-serif; background: white; background: rgba(255,255,255,0.8); box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; } .info h4 { margin: 0 0 5px; color: #777; }
+         .legend { text-align: left; line-height: 18px; color: #555; } .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.7; }</style>
+         
+   
    </head>
    <body>
       <div class="hero_area">
@@ -488,7 +511,138 @@
          </div>
       </section>
       <!-- end arrival section -->
+
+
+      <!-- Carte choroplete section -->
+      <div id="map" style="width: 1000px; height: 600px;"></div>
+      <script>
       
+         const map = L.map('map').setView([31.896214, -6.416016], 6);
+      
+         const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+         }).addTo(map);
+      
+         // control that shows state info on hover
+         const info = L.control();
+      
+         info.onAdd = function (map) {
+            this._div = L.DomUtil.create('div', 'info');
+            this.update();
+            return this._div;
+         };
+      
+         info.update = function (props) {
+            const contents = props ? `<b>${props.Nom_Region}</b><br />${props.SAUPerc} % ` + `<br />${props.SAU} ` : 'Par Régions';
+            this._div.innerHTML = `<h4>Pourcentage des Superficies agricole utile </h4>${contents}`;
+         };
+      
+         info.addTo(map);
+      
+      
+         // get color depending on population density value
+         function getColor(P) {
+            return P > 13.68 ? '#006837' :
+               P > 10.77  ? '#31a354' :
+               P > 4.91  ? '#78c679' :
+               P > 1.78  ? '#c2e699' :
+               P > 1.07   ? '#ffffcc' : '#FFEDA0';
+         }
+      
+         function styler(feature) {
+            return {
+               weight: 2,
+               opacity: 1,
+               color: 'white',
+               dashArray: '3',
+               fillOpacity: 0.7,
+               fillColor: getColor(feature.properties.SAUPerc)
+            };
+         }
+         function highlightFeature(e) {
+            const layer = e.target;
+      
+            layer.setStyle({
+               weight: 5,
+               color: '#666',
+               dashArray: '',
+               fillOpacity: 0.7
+            });
+      
+            layer.bringToFront();
+      
+            info.update(layer.feature.properties);
+         }
+      
+         var geojson = L.geoJson(Region_Agri , {style: styler ,
+            onEachFeature : onEachFeature
+         }).addTo(map)
+      
+         
+         function resetHighlight(e) {
+            geojson.resetStyle(e.target);
+            info.update();
+         }
+      
+         function zoomToFeature(e) {
+            map.fitBounds(e.target.getBounds());
+         }
+      
+         function onEachFeature(feature, layer) {
+            layer.on({
+               mouseover: highlightFeature,
+               mouseout: resetHighlight,
+               click: zoomToFeature
+            });
+         }
+      
+         map.attributionControl.addAttribution('Superficie agricole utile &copy; <a href="https://www.agriculture.gov.ma/fr/region/oriental">Maroc</a>');
+      
+         const legend = L.control({position: 'bottomright'});
+      
+         legend.onAdd = function (map) {
+      
+            const div = L.DomUtil.create('div', 'info legend');
+            const grades = [0, 0.7, 3.1, 7.5, 19 ];
+            const labels = [];
+            let from, to;
+      
+            for (let i = 0; i < grades.length; i++) {
+               from = grades[i];
+               to = grades[i + 1];
+      
+               labels.push(`<i style="background:${getColor(from + 1)}"></i> ${from}${to ? `&ndash;${to}` : '+'}`);
+            }
+      
+            div.innerHTML = labels.join('<br>');
+            return div;
+         };
+      
+         legend.addTo(map);
+      
+         const popup = L.popup()
+            .setLatLng([31.896214, -6.416016])
+            .setContent('Maroc')
+            .openOn(map);
+      
+      
+         function onMapClick(e) {
+            popup
+               .setLatLng(e.latlng)
+               .setContent(`You clicked the map at ${e.latlng.toString()}`)
+               .openOn(map);
+         }
+      
+         map.on('click', onMapClick);
+      
+      </script>
+      
+
+
+      <!-- end Carte choroplete section -->
+
+
       <!-- product section -->
       <section class="product_section layout_padding">
          <div class="container">
